@@ -349,6 +349,20 @@ def find_notes_to_remove(notes_to_end):
 
     return result
 
+def get_longest_track(midi):
+    index = 0
+    len = 0
+
+    curIndex = 0
+    for track in midi.tracks:
+        if track.length > len:
+            len = track.length
+            index = curIndex
+
+        curIndex += 1
+
+    return midi.tracks[index]
+
 if __name__ == '__main__':
     midi = MidiFile()
     # midi.open("original\piano_sonata_279_(hisamori).mid")
