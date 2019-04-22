@@ -401,6 +401,14 @@ def get_longest_track(midi):
 
     return midi.tracks[index]
 
+def load_data(path):
+    midi = MidiFile()
+    midi.open(path)
+    merged = merge_tracks(midi.tracks)
+
+    return quantize_midi(merged, midi.ticksPerQuarterNote)
+
+
 if __name__ == '__main__':
 
     # mozart = MidiFile()
@@ -423,12 +431,12 @@ if __name__ == '__main__':
     # read_quantize_write_midi("modified\mozart_merged.mid", "modified\mozart.mid")
 
 
-    # midi = MidiFile()
-    # # midi.open("original\piano_sonata_279_(hisamori).mid")
-    # midi.open("original first movement\piano_sonata_310_1oguri.mid")
-    # # midi.open("modified\midi0.mid")
-    # midi.read()
-    # merged_tracks = merge_tracks(midi.tracks)
+    midi = MidiFile()
+    # midi.open("original\piano_sonata_279_(hisamori).mid")
+    midi.open("original first movement\piano_sonata_310_1oguri.mid")
+    # midi.open("modified\midi0.mid")
+    midi.read()
+    merged_tracks = merge_tracks(midi.tracks)
 
     quantized = quantize_midi(midi.tracks[1], midi.ticksPerQuarterNote)
 
