@@ -40,7 +40,7 @@ def get_next_events(tracks):
 
         cur_track_events.remove(cur_event)
 
-        if cur_event.type == 'END_OF_TRACK' and (lowest_index != 0 or len(tracks) == 0):
+        if cur_event.type == 'END_OF_TRACK' and (len(tracks) == 0):
             # tracks.remove(tracks[lowest_index])
             # If we removed from the last track and reached END_OF_TRACK break out of the loop and continue
             # as the rest of the code will remove this track and return its contents
@@ -122,8 +122,12 @@ def get_tick_length_of_note(track, index_of_start):
         current_event = track.events[index]
         if current_event.type == 'DeltaTime':
             length_of_note += current_event.time
-        elif current_event.type == 'NOTE_OFF' and current_event.pitch == event.pitch:
-            break
+        elif current_event.pitch == event.pitch:
+            if current_event.type == 'NOTE_OFF':
+                break
+            elif current_event.type == 'NOTE_ON' and current_event.velocity == 0:
+                current_event.type = 'NOTE_OFF'
+                break
 
     return length_of_note
 
@@ -135,7 +139,7 @@ def get_note_type(ticks_per_quarter_note, tick_length, round_nearest=False):
 
     length_rounded = round(length_in_sixteenth_notes)
 
-    if length_rounded - .3 <= length_in_sixteenth_notes <= length_rounded + .3:
+    if length_rounded - .5 <= length_in_sixteenth_notes <= length_rounded + .5:
         return length_rounded
     else:
 
@@ -349,20 +353,75 @@ def find_notes_to_remove(notes_to_end):
 
     return result
 
+def merge_midi(midi):
+    merged = merge_tracks(midi.tracks)
+    result = MidiFile()
+    result.format = 0
+    result.tracks = merged
+
+    return result
+
+
+def find_note_stops(midi):
+    for tInedx, track in enumerate(midi.tracks):
+        for eIndex , event in enumerate(track.events):
+            if event.type == 'NOTE_OFF':
+                print("Note off", tInedx, eIndex)
+
+
+def read_quantize_write_midi(nameRead, nameWrite):
+    read = MidiFile()
+    read.open(nameRead)
+    read.read()
+
+    # find_note_stops(read)
+
+
+    merged_track = merge_tracks(read.tracks)
+    quantized_notes = quantize_midi(merged_track[0], read.ticksPerQuarterNote)
+
+    write = MidiFile()
+    # write.format = 0
+    # write.tracks = merged_track
+    write = make_midi(quantized_notes, read.ticksPerQuarterNote)
+    write.open(nameWrite + " modified.mid", 'wb')
+    write.write()
+
 if __name__ == '__main__':
-    midi = MidiFile()
-    # midi.open("original\piano_sonata_279_(hisamori).mid")
-    midi.open("original first movement\piano_sonata_310_1oguri.mid")
-    # midi.open("modified\midi0.mid")
-    midi.read()
+
+    # mozart = MidiFile()
+    # mozart.open("original\Mozart_Sonata_No._16_in_C_Major_Mvt_I_Allegro_1788.mid")
+    # mozart.read()
+    #
+    # merged = merge_midi(mozart)
+    #
+    # merged.open("modified\mozart.mid", 'wb')
+    # merged.write()
+
+    # read_quantize_write_midi("original\Mozart_Sonata_No._16_in_C_Major_Mvt_I_Allegro_1788.mid", "modified\mozart.mid")
+
+    # read_quantize_write_midi("original\Beethoven__Piano_Sonata_No._14__Moonlight.mid", "modified\Beethoven16.mid")
+    # read_quantize_write_midi("Mozart\Piano_Sonata_No_KV_279.mid", "modified\Mozart1.mid")
+
+    read_quantize_write_midi("Music/IMSLP286530-PMLP01846-Mozart-RondoAllaTurca.mid", "Music\modified\k331 imslp.mid")
+    read_quantize_write_midi("Music/original/piano_sonata_331_(hisamori).mid", "Hisamori k331.mid")
+
+    # read_quantize_write_midi("modified\mozart_merged.mid", "modified\mozart.mid")
+
+
+    # midi = MidiFile()
+    # # midi.open("original\piano_sonata_279_(hisamori).mid")
+    # midi.open("original first movement\piano_sonata_310_1oguri.mid")
+    # # midi.open("modified\midi0.mid")
+    # midi.read()
     # merged_tracks = merge_tracks(midi.tracks)
-
-    quantized = quantize_midi(midi.tracks[1], midi.ticksPerQuarterNote)
-
-    out_midi = make_midi(quantized, 100)
-
-    out_midi.open("modified\single movement.mid", "wb")
-    out_midi.write()
+    #
+    # quantized = quantize_midi(merged_tracks[0], midi.ticksPerQuarterNote)
+    #
+    # out_midi = make_midi(quantized, 100)
+    #
+    # out_midi.open("modified\single movement.mid", "wb")
+    # out_midi.write()
 
     # for track in midi.tracks:
     #
