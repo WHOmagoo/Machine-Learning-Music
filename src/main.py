@@ -404,12 +404,15 @@ def get_longest_track(midi):
 def load_data(path):
     midi = MidiFile()
     midi.open(path)
+    midi.read()
     merged = merge_tracks(midi.tracks)
 
-    return quantize_midi(merged, midi.ticksPerQuarterNote)
+    return quantize_midi(merged[0], midi.ticksPerQuarterNote)
 
 
 if __name__ == '__main__':
+
+    print(load_data("Music/piano-midi.de/mozart 17 mv1.mid"))
 
     # mozart = MidiFile()
     # mozart.open("original\Mozart_Sonata_No._16_in_C_Major_Mvt_I_Allegro_1788.mid")
