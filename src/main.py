@@ -40,7 +40,7 @@ def get_next_events(tracks):
 
         cur_track_events.remove(cur_event)
 
-        if cur_event.type == 'END_OF_TRACK' and (len(tracks) == 0):
+        if cur_event.type == 'END_OF_TRACK' and (lowest_index != 0 or len(tracks) == 0):
             # tracks.remove(tracks[lowest_index])
             # If we removed from the last track and reached END_OF_TRACK break out of the loop and continue
             # as the rest of the code will remove this track and return its contents
@@ -387,6 +387,20 @@ def read_quantize_write_midi(nameRead, nameWrite):
     write.open(nameWrite + " modified.mid", 'wb')
     write.write()
 
+def get_longest_track(midi):
+    index = 0
+    len = 0
+
+    curIndex = 0
+    for track in midi.tracks:
+        if track.length > len:
+            len = track.length
+            index = curIndex
+
+        curIndex += 1
+
+    return midi.tracks[index]
+
 if __name__ == '__main__':
 
     # mozart = MidiFile()
@@ -415,13 +429,13 @@ if __name__ == '__main__':
     # # midi.open("modified\midi0.mid")
     # midi.read()
     # merged_tracks = merge_tracks(midi.tracks)
-    #
-    # quantized = quantize_midi(merged_tracks[0], midi.ticksPerQuarterNote)
-    #
-    # out_midi = make_midi(quantized, 100)
-    #
-    # out_midi.open("modified\single movement.mid", "wb")
-    # out_midi.write()
+
+    quantized = quantize_midi(midi.tracks[1], midi.ticksPerQuarterNote)
+
+    out_midi = make_midi(quantized, 100)
+
+    out_midi.open("modified\single movement.mid", "wb")
+    out_midi.write()
 
     # for track in midi.tracks:
     #
