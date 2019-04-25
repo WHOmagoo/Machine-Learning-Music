@@ -3,10 +3,11 @@ from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dense, Dropout, LSTM, Input, Bidirectional
 import os
 from keras.datasets import mnist
-from examples import prepare_examples
 from sklearn.model_selection import train_test_split
 import numpy as np
 from keras.utils import to_categorical
+
+from src.examples import prepare_examples
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #Blocks warning messages
 
