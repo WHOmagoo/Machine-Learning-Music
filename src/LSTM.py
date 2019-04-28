@@ -82,16 +82,15 @@ if __name__ == "__main__":
     session = tf.Session()
 
     print('Preparing Examples...')
-    X, y = prepare_examples()
+    X, y = prepare_examples(256)
 
     print('X_train:', X)
     print('y_train:', y)
     print(y[0].shape)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = .2)
-    y_train = to_categorical(y_train[:,:1], num_classes=92, dtype='int')
-    y_test = to_categorical(y_test[:,:1], num_classes=92, dtype='int')
-
+    y_train = to_categorical(y_train, num_classes=92, dtype='int')
+    y_test = to_categorical(y_test, num_classes=92, dtype='int')
 
     print('AAAAAAAAAAAAA', y_train[0])
     
@@ -125,11 +124,12 @@ if __name__ == "__main__":
 
     model.fit(
         X_train, 
-        y_train, epochs=260, validation_data=
+        y_train, epochs=1, validation_data=
         (X_test, 
         y_test)
         )
 
+    print(model.predict(np.array([[[72, 64, 0, 0, 0, 0, 0, 0], [72, 69, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [63, 0, 0, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [68, 71, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [84, 72, 57, 0, 0, 0, 0, 0]]])))
     results = recursive_predic(model, np.array([[[72, 64, 0, 0, 0, 0, 0, 0], [72, 69, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [63, 0, 0, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [68, 71, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [84, 72, 57, 0, 0, 0, 0, 0]]]))
 
     print(results)
