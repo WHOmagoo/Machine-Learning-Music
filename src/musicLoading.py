@@ -1,3 +1,5 @@
+import os
+
 from music21.midi import MidiFile
 from music21.midi import MidiTrack
 from music21.midi import MidiEvent
@@ -83,6 +85,7 @@ def removeTime(amount_of_time, index_to_skip, tracks):
                 if cur_event.type == 'DeltaTime':
                     if cur_event.time > 0:
                         cur_event.time -= amount_of_time
+
 
 def merge_tracks(tracks):
     merged_events = []
@@ -336,9 +339,6 @@ def end_notes(notes_to_end, track, first_delta_time_to_use):
     return time_written
 
 
-
-
-
 def find_notes_to_remove(notes_to_end):
     result = []
 
@@ -352,6 +352,7 @@ def find_notes_to_remove(notes_to_end):
         notes_to_end.remove(note)
 
     return result
+
 
 def merge_midi(midi):
     merged = merge_tracks(midi.tracks)
@@ -387,6 +388,15 @@ def read_quantize_write_midi(nameRead, nameWrite):
     write.open(nameWrite + " modified.mid", 'wb')
     write.write()
 
+def quantized_to_midi(quantized_notes, fileName):
+    write = MidiFile()
+    # write.format = 0
+    # write.tracks = merged_track
+    write = make_midi(quantized_notes, 480)
+    write.open(fileName, 'wb')
+    write.write()
+
+
 def get_longest_track(midi):
     index = 0
     len = 0
@@ -401,6 +411,7 @@ def get_longest_track(midi):
 
     return midi.tracks[index]
 
+
 def load_data(path):
     midi = MidiFile()
     midi.open(path)
@@ -409,6 +420,14 @@ def load_data(path):
 
     return quantize_midi(merged[0], midi.ticksPerQuarterNote)
 
+
+def get_all_midis_in_folder(folder_path):
+    result = []
+    for root, dirs, files in os.walk(folder_path):
+        for name in files:
+            if '.mid' in name:
+                result.append((load_data(folder_path + "/" + name), folder_path + name))
+    return result
 
 if __name__ == '__main__':
 

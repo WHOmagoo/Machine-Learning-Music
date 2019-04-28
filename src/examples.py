@@ -411,15 +411,16 @@ def load_data(path):
 
     return quantize_midi(merged[0], midi.ticksPerQuarterNote)
 
-def prepare_examples():
+def load_all_examples():
     noteDataset = []
     lengthDataset = []
+
     for root, dirs, files in os.walk('../Music/piano-midi.de'):
         for name in files:
             if '.mid' in name:
                 midData = load_data("../Music/piano-midi.de/" + name)
                 filteredBritaWater = []
-    
+
                 for i in range(0, len(midData)):
                     if len(midData[i]) != 0:
                         filteredBritaWater.append(midData[i])
@@ -441,7 +442,7 @@ def prepare_examples():
             if '.mid' in name:
                 midData = load_data("../Music/kunstderfuge.com/" + name)
                 filteredBritaWater = []
-    
+
                 for i in range(0, len(midData)):
                     if len(midData[i]) != 0:
                         filteredBritaWater.append(midData[i])
@@ -457,6 +458,11 @@ def prepare_examples():
                 #print(max([len(chord) for chord in notes]))
                 noteDataset.append(notes)
                 lengthDataset.append(lengths)
+
+    return noteDataset, lengthDataset
+
+def prepare_examples():
+    noteDataset, lengthDataset = load_all_examples()
 
     fixedNoteDataSet = []
     for song in noteDataset:
