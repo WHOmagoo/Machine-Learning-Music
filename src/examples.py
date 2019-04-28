@@ -6,6 +6,21 @@ from music21 import *
 import os
 import numpy as np
 
+zeroes_output = [[0] * 88]
+zeroes_input = [[0] * 8]
+classes = [0] * 88
+
+def get_class(classNum):
+    if classes[0] == 0:
+        for i in range(88):
+            curClass = [0] * (88)
+            curClass[i] = 1
+
+            classes[i] = curClass
+
+    return classes[classNum]
+
+
 
 def get_next_events(tracks):
     lowest_index = 0
@@ -86,6 +101,7 @@ def removeTime(amount_of_time, index_to_skip, tracks):
                     if cur_event.time > 0:
                         cur_event.time -= amount_of_time
 
+
 def merge_tracks(tracks):
     merged_events = []
     time_passed = 0
@@ -120,7 +136,7 @@ def get_tick_length_of_note(track, index_of_start):
 
     length_of_note = 0
 
-    for index in range(index_of_start+1, len(track.events)):
+    for index in range(index_of_start + 1, len(track.events)):
         current_event = track.events[index]
         if current_event.type == 'DeltaTime':
             length_of_note += current_event.time
@@ -154,8 +170,7 @@ def get_note_type(ticks_per_quarter_note, tick_length, round_nearest=False):
 
 
 def quantize_midi(track, ticks_per_quarternote):
-
-    #result, each index is one 16th note, each item will be a list of notes that are started at the time along with their length
+    # result, each index is one 16th note, each item will be a list of notes that are started at the time along with their length
     result = [[]]
     current_time = 0
     current_time_exact = 0
@@ -186,6 +201,7 @@ def quantized_to_midi(quantized_data):
     track = MidiTrack(0)
     track.events.append(MidiEvent())
     track.setChannel(1)
+
 
 def write_starting_messages(track=MidiTrack(0)):
     no_time_spacing = DeltaTime(track, time=0)
@@ -265,7 +281,8 @@ def make_midi(quantized_data, ticks_per_sixteenth_note):
 
     for beat in quantized_data:
         to_write_end = find_notes_to_remove(notes_to_end)
-        last_event_written_at_beat += int(end_notes(to_write_end, track, (beats_passed - last_event_written_at_beat) * ticks_per_sixteenth_note) / ticks_per_sixteenth_note)
+        last_event_written_at_beat += int(end_notes(to_write_end, track, (
+                    beats_passed - last_event_written_at_beat) * ticks_per_sixteenth_note) / ticks_per_sixteenth_note)
 
         for note in beat:
             if note[1] > 0:
@@ -309,16 +326,15 @@ def make_midi(quantized_data, ticks_per_sixteenth_note):
 
     end_notes(notes_to_end, track, ticks_per_sixteenth_note * 2)
 
-
     end_track(track)
     result.tracks.append(track)
 
     return result
 
+
 def end_notes(notes_to_end, track, first_delta_time_to_use):
     first = True
     time_written = 0
-
 
     for note in notes_to_end:
         if first:
@@ -338,9 +354,6 @@ def end_notes(notes_to_end, track, first_delta_time_to_use):
     return time_written
 
 
-
-
-
 def find_notes_to_remove(notes_to_end):
     result = []
 
@@ -355,6 +368,7 @@ def find_notes_to_remove(notes_to_end):
 
     return result
 
+
 def merge_midi(midi):
     merged = merge_tracks(midi.tracks)
     result = MidiFile()
@@ -366,7 +380,7 @@ def merge_midi(midi):
 
 def find_note_stops(midi):
     for tInedx, track in enumerate(midi.tracks):
-        for eIndex , event in enumerate(track.events):
+        for eIndex, event in enumerate(track.events):
             if event.type == 'NOTE_OFF':
                 print("Note off", tInedx, eIndex)
 
@@ -378,7 +392,6 @@ def read_quantize_write_midi(nameRead, nameWrite):
 
     # find_note_stops(read)
 
-
     merged_track = merge_tracks(read.tracks)
     quantized_notes = quantize_midi(merged_track[0], read.ticksPerQuarterNote)
 
@@ -388,6 +401,7 @@ def read_quantize_write_midi(nameRead, nameWrite):
     write = make_midi(quantized_notes, read.ticksPerQuarterNote)
     write.open(nameWrite + " modified.mid", 'wb')
     write.write()
+
 
 def get_longest_track(midi):
     index = 0
@@ -403,73 +417,157 @@ def get_longest_track(midi):
 
     return midi.tracks[index]
 
+
 def load_data(path):
     midi = MidiFile()
     midi.open(path)
     midi.read()
     merged = merge_tracks(midi.tracks)
 
-    return quantize_midi(merged[0], midi.ticksPerQuarterNote)
+    quantized = quantize_midi(merged[0], midi.ticksPerQuarterNote)
+    midi.close()
+
+    return quantized
+
+
+def load_all_from_a_folder(folder_path):
+    noteDataset = []
+    # lengthDataset = []
+
+    for root, dirs, files in os.walk(folder_path):
+        for name in files:
+            if '.mid' in name:
+                midData = load_data(folder_path + name)
+
+                # filteredBritaWater = []
+                #
+                # for i in range(0, len(midData)):
+                #     if len(midData[i]) != 0:
+                #         filteredBritaWater.append(midData[i])
+
+                # notes = convert_quantized_to_input(midData)
+                notes = remove_rhythm(midData)
+
+                # print(max([len(chord) for chord in notes]))
+                noteDataset.append(notes)
+                # noteDataset.append(notes)
+                # lengthDataset.append(lengths)
+
+    return noteDataset
+
+
+# Expects for the rhythm to be removed already and the chord to use the midi number not 0 based number
+def convert_chord_to_output(chord):
+    result = [int(0)] * 88
+    i = 0
+    for i in range(88):
+        if i + 21 in chord:
+            result[i] = 1
+        # else:
+        #     result[i] = zeroes_output[0]
+
+
+    # result = np.array(result)
+
+    return result
+
+
+def convert_quantized_to_input(midiData):
+    notes = zeroes_output * len(midiData)
+    i = 0
+    for item in midiData:
+        added = False
+        for note in item:
+            if note[0] >= 21:
+                if not added:
+                    notes[i] = [0] * 88
+                    added = True
+
+                notes[i][note[0] - 21] = 1
+        i += 1
+
+    return np.array(notes)
+
+
+def remove_rhythm(midiData):
+    notes = []
+
+    for chord in midiData:
+        stripped_chord = [0] * 8
+
+        i = 0
+        for note in chord:
+            stripped_chord[i] = note[0]
+            i += 1
+            if i == 8:
+                break;
+        notes.append(stripped_chord)
+
+    return notes
+
 
 def load_all_examples():
-    noteDataset = []
-    lengthDataset = []
+    noteDataset = load_all_from_a_folder("../Music/piano-midi.de/")
+    noteDataset += load_all_from_a_folder('../Music/kunstderfuge.com/')
 
-    for root, dirs, files in os.walk('../Music/piano-midi.de'):
-        for name in files:
-            if '.mid' in name:
-                midData = load_data("../Music/piano-midi.de/" + name)
-                filteredBritaWater = []
+    # for root, dirs, files in os.walk('../Music/piano-midi.de'):
+    #     for name in files:
+    #         if '.mid' in name:
+    #             midData = load_data("../Music/piano-midi.de/" + name)
+    #             filteredBritaWater = []
+    #
+    #             for i in range(0, len(midData)):
+    #                 if len(midData[i]) != 0:
+    #                     filteredBritaWater.append(midData[i])
+    #
+    #             notes = []
+    #             lengths = []
+    #
+    #             for item in filteredBritaWater:
+    #                 notes.append([note[0] for note in item])
+    #                 lengths.append([note[1] for note in item])
+    #
+    #
+    #             #print(max([len(chord) for chord in notes]))
+    #             noteDataset.append(notes)
+    #             lengthDataset.append(lengths)
 
-                for i in range(0, len(midData)):
-                    if len(midData[i]) != 0:
-                        filteredBritaWater.append(midData[i])
+    # for root, dirs, files in os.walk('../Music/kunstderfuge.com'):
+    #     for name in files:
+    #         if '.mid' in name:
+    #             midData = load_data("../Music/kunstderfuge.com/" + name)
+    #             filteredBritaWater = []
+    #
+    #             for i in range(0, len(midData)):
+    #                 if len(midData[i]) != 0:
+    #                     filteredBritaWater.append(midData[i])
+    #
+    #             notes = []
+    #             lengths = []
+    #
+    #             for item in filteredBritaWater:
+    #                 notes.append([note[0] for note in item])
+    #                 lengths.append([note[1] for note in item])
+    #
+    #
+    #             #print(max([len(chord) for chord in notes]))
+    #             noteDataset.append(notes)
+    #             lengthDataset.append(lengths)
 
-                notes = []
-                lengths = []
+    return noteDataset
 
-                for item in filteredBritaWater:
-                    notes.append([note[0] for note in item])
-                    lengths.append([note[1] for note in item])
-
-
-                #print(max([len(chord) for chord in notes]))
-                noteDataset.append(notes)
-                lengthDataset.append(lengths)
-
-    for root, dirs, files in os.walk('../Music/kunstderfuge.com'):
-        for name in files:
-            if '.mid' in name:
-                midData = load_data("../Music/kunstderfuge.com/" + name)
-                filteredBritaWater = []
-
-                for i in range(0, len(midData)):
-                    if len(midData[i]) != 0:
-                        filteredBritaWater.append(midData[i])
-
-                notes = []
-                lengths = []
-
-                for item in filteredBritaWater:
-                    notes.append([note[0] for note in item])
-                    lengths.append([note[1] for note in item])
-
-
-                #print(max([len(chord) for chord in notes]))
-                noteDataset.append(notes)
-                lengthDataset.append(lengths)
-
-    return noteDataset, lengthDataset
 
 def prepare_examples(number_of_notes_per_input):
     noteDataset, lengthDataset = load_all_examples()
+
+    print("Creating the views...")
 
     fixedNoteDataSet = []
     for song in noteDataset:
         fixedSongSet = []
         for chord in song:
             fixedChordSet = []
-            #print(chord)
+            # print(chord)
             while len(chord) != 8:
                 chord.append(0)
             fixedSongSet.append(chord)
@@ -485,22 +583,57 @@ def prepare_examples(number_of_notes_per_input):
     for i in range(0, len(fixedNoteDataSet)):
         # Add leading and trailing zeroes so that we can have better prediction at the beggining and end
         # This will also pad our data in case music is not long enough to fit the length of notes
-        fixedNoteDataSet[i] = ([0] * number_of_notes_per_input // 2) + fixedNoteDataSet[i] + ([0] * number_of_notes_per_input // 2)
+        fixedNoteDataSet[i] = ([0] * number_of_notes_per_input // 2) + fixedNoteDataSet[i] + (
+                    [0] * number_of_notes_per_input // 2)
         for j in range(0, len(fixedNoteDataSet[i]) - 1 - number_of_notes_per_input):
-            trainingExample = fixedNoteDataSet[i][j:j+number_of_notes_per_input]
-            trainingLabel = fixedNoteDataSet[i][j+number_of_notes_per_input]
+            trainingExample = fixedNoteDataSet[i][j:j + number_of_notes_per_input]
+            trainingLabel = fixedNoteDataSet[i][j + number_of_notes_per_input]
             Inputs.append(trainingExample)
             Labels.append(trainingLabel)
 
-    #for i in range(0, len(Inputs)):
-        #print('Training Example {}:'.format(i))
-        #print(Inputs[i])
-        #print(Labels[i])
+    # for i in range(0, len(Inputs)):
+    # print('Training Example {}:'.format(i))
+    # print(Inputs[i])
+    # print(Labels[i])
 
     Inputs = np.array(Inputs)
     Labels = np.array(Labels)
 
     return Inputs, Labels
+
+
+def prepare_examples_with_views(number_of_notes_per_input):
+    print("Loading midi files from disk")
+    noteDataset = load_all_examples()
+
+    print("Finished loading from disk. Converting to input representation")
+
+    note_inputs = []
+    note_outputs = []
+
+    leading_note_blanks = number_of_notes_per_input - 16
+
+    if leading_note_blanks < 0:
+        leading_note_blanks = 0
+
+    for song in noteDataset:
+        zero_padding = zeroes_input * (leading_note_blanks - 16)
+        np.insert(song, 0, zero_padding, axis=0)
+
+        for i in range(len(song) - 1 - number_of_notes_per_input):
+            note_inputs.append(np.array(song[i:i + number_of_notes_per_input]))
+            chord_in_class = convert_chord_to_output(song[i + number_of_notes_per_input])
+
+            # # note_outputs = np.append(note_outputs, chord_in_class, axis=0)
+            note_outputs.append(chord_in_class)
+
+            # for note in chord_in_class:
+            #     note_outputs.append(chord_in_class)
+
+
+    print("Finished input representation")
+
+    return np.array(note_inputs), np.array(note_outputs)
 
 
 if __name__ == '__main__':
@@ -512,7 +645,7 @@ if __name__ == '__main__':
             if '.mid' in name:
                 midData = load_data("../Music/piano-midi.de/" + name)
                 filteredBritaWater = []
-    
+
                 for i in range(0, len(midData)):
                     if len(midData[i]) != 0:
                         filteredBritaWater.append(midData[i])
@@ -523,7 +656,6 @@ if __name__ == '__main__':
                 for item in filteredBritaWater:
                     notes.append([note[0] for note in item])
                     lengths.append([note[1] for note in item])
-
 
                 print(max([len(chord) for chord in notes]))
                 noteDataset.append(notes)
@@ -534,7 +666,7 @@ if __name__ == '__main__':
             if '.mid' in name:
                 midData = load_data("../Music/kunstderfuge.com/" + name)
                 filteredBritaWater = []
-    
+
                 for i in range(0, len(midData)):
                     if len(midData[i]) != 0:
                         filteredBritaWater.append(midData[i])
@@ -545,7 +677,6 @@ if __name__ == '__main__':
                 for item in filteredBritaWater:
                     notes.append([note[0] for note in item])
                     lengths.append([note[1] for note in item])
-
 
                 print(max([len(chord) for chord in notes]))
                 noteDataset.append(notes)
@@ -566,8 +697,8 @@ if __name__ == '__main__':
     Labels = []
     for i in range(0, len(fixedNoteDataSet)):
         for j in range(0, len(fixedNoteDataSet[i]) - 9):
-            trainingExample = fixedNoteDataSet[i][j:j+8]
-            trainingLabel = fixedNoteDataSet[i][j+8]
+            trainingExample = fixedNoteDataSet[i][j:j + 8]
+            trainingLabel = fixedNoteDataSet[i][j + 8]
             Inputs.append(trainingExample)
             Labels.append(trainingLabel)
 

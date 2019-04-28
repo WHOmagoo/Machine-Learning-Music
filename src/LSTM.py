@@ -1,6 +1,7 @@
 import copy
 
 import tensorflow as tf
+from keras import metrics
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dropout, Input, Bidirectional
 import os
@@ -12,8 +13,9 @@ import numpy as np
 
 from tensorflow.python.keras.layers import LSTM, Dense
 
-from examples import prepare_examples
-from main import make_midi
+import examples as ex
+from examples import prepare_examples, prepare_examples_with_views
+from musicLoading import make_midi
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #Blocks warning messages
 
@@ -60,49 +62,51 @@ def results_to_midi(results):
 
 
 def recursive_predic(model, startingData):
-    result = copy.deepcopy(startingData[0].tolist())
+    result = copy.deepcopy(startingData)
 
     curData = copy.deepcopy(startingData)
+    curData = np.array([curData])
     for i in range(16 * 32):
         newNotes = model.predict(curData)
-        notes = get_likliest_two_notes(newNotes)
-        notes = [notes[0], notes[1], 0,0,0,0,0,0];
+        notes = []
+
+        for note in range(len(newNotes)):
+            if newNotes[i] > .8:
+                notes.append(i)
 
         result.append(notes)
         curData = np.delete(curData[0], 0, axis=0)
-        curData = np.append(curData, [notes], axis=0)
-        curData = np.array([curData])
+        curData = np.append(curData[0], newNotes, axis=0)
+        # curData = np.array([curData)
 
     print("Raw results", result)
 
     return result
 
-
 if __name__ == "__main__":
     session = tf.Session()
 
-    print('Preparing Examples...')
-    X, y = prepare_examples(256)
+    input_size = 256
 
-    print('X_train:', X)
-    print('y_train:', y)
-    print(y[0].shape)
+    X, y = prepare_examples_with_views(input_size)
+
+    print('Finished prep, shape ', X[0].shape)
+
+    print('Number of training itmes: ', len(X))
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = .2)
-    y_train = to_categorical(y_train, num_classes=92, dtype='int')
-    y_test = to_categorical(y_test, num_classes=92, dtype='int')
+    # y_train = to_categorical(y_train[:,:1], num_classes=92, dtype='int')
+    # y_test = to_categorical(y_test[:,:1], num_classes=92, dtype='int')
 
-    print('AAAAAAAAAAAAA', y_train[0])
-    
+    inputs = Input(shape=(256,8), dtype=tf.int64)
+    # inputs = Input(shape=X_train[0].shape)
 
-    
-    print('Shape:', X_train.shape[1:])
-    print('Shape', X_train.shape)
+    inputs = Input(shape=X[0].shape)
 
-    inputs = Input(shape=X_train.shape[1:])
+    lstm = Bidirectional(LSTM(124), merge_mode='concat', dtype=tf.int64)(inputs)
+    pred1 = Dense(88, activation='sigmoid')(lstm)
 
-    lstm = Bidirectional(LSTM(124), merge_mode='concat')(inputs)
-    pred1 = Dense(92, activation='softmax')(lstm)
+    pred = Dropout(.4)(pred1)
 
 
     """x = (LSTM(128, input_shape = X_train.shape[1:], activation='relu', return_sequences=True, dtype=tf.int32))(inputs)
@@ -116,27 +120,45 @@ if __name__ == "__main__":
     pred6 = (Dense(1, activation='softmax'))(x)
     pred7 = (Dense(1, activation='softmax'))(x)
     pred8 = (Dense(1, activation='softmax'))(x)"""
-    model = Model(inputs = inputs, outputs=[pred1])
+
+    model = Model(inputs=inputs, outputs=pred1)
     
     opt = tf.keras.optimizers.Adam(lr=1e-3, decay=1e-5)
 
     model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 
+    print(model.input_shape)
+    print(model.output_shape)
+
     model.fit(
-        X_train, 
-        y_train, epochs=1, validation_data=
-        (X_test, 
-        y_test)
+        X,
+        y, epochs=200, validation_data=(X, y)
         )
 
-    print(model.predict(np.array([[[72, 64, 0, 0, 0, 0, 0, 0], [72, 69, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [63, 0, 0, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [68, 71, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [84, 72, 57, 0, 0, 0, 0, 0]]])))
-    results = recursive_predic(model, np.array([[[72, 64, 0, 0, 0, 0, 0, 0], [72, 69, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [63, 0, 0, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [68, 71, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [84, 72, 57, 0, 0, 0, 0, 0]]]))
+    # print(model.predict(np.array([[[72, 64, 0, 0, 0, 0, 0, 0], [72, 69, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [63, 0, 0, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [68, 71, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [84, 72, 57, 0, 0, 0, 0, 0]]])))
+
+
+
+    starting_notes = [[72, 64, 0, 0, 0, 0, 0, 0], [72, 69, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [63, 0, 0, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [68, 71, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [84, 72, 57, 0, 0, 0, 0, 0]]
+    padded_input = [[0] * 8] * (input_size - len(starting_notes)) + starting_notes
+
+    # final_input = []
+    #
+    # #Add time value to notes
+    # for chord in padded_input:
+    #     curList = []
+    #     for note in chord:
+    #         curList.append([note, 2])
+    #
+    #     final_input.append(curList)
+
+    # converted = ex.convert_quantized_to_input(padded_input)
+
+    results = recursive_predic(model, padded_input)
 
     print(results)
 
     results_to_midi(results)
-
-
 
     session.close()
 
