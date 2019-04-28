@@ -461,7 +461,7 @@ def load_all_examples():
 
     return noteDataset, lengthDataset
 
-def prepare_examples():
+def prepare_examples(number_of_notes_per_input):
     noteDataset, lengthDataset = load_all_examples()
 
     fixedNoteDataSet = []
@@ -477,10 +477,18 @@ def prepare_examples():
 
     Inputs = []
     Labels = []
+
+    # even number of input notes only
+    if number_of_notes_per_input % 2 == 1:
+        number_of_notes_per_input += 1
+
     for i in range(0, len(fixedNoteDataSet)):
-        for j in range(0, len(fixedNoteDataSet[i]) - 9):
-            trainingExample = fixedNoteDataSet[i][j:j+8]
-            trainingLabel = fixedNoteDataSet[i][j+8]
+        # Add leading and trailing zeroes so that we can have better prediction at the beggining and end
+        # This will also pad our data in case music is not long enough to fit the length of notes
+        fixedNoteDataSet[i] = ([0] * number_of_notes_per_input // 2) + fixedNoteDataSet[i] + ([0] * number_of_notes_per_input // 2)
+        for j in range(0, len(fixedNoteDataSet[i]) - 1 - number_of_notes_per_input):
+            trainingExample = fixedNoteDataSet[i][j:j+number_of_notes_per_input]
+            trainingLabel = fixedNoteDataSet[i][j+number_of_notes_per_input]
             Inputs.append(trainingExample)
             Labels.append(trainingLabel)
 

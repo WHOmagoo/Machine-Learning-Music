@@ -15,7 +15,7 @@ if __name__ == "__main__":
     session = tf.Session()
 
     print('Preparing Examples...')
-    X, y = prepare_examples()
+    X, y = prepare_examples(256)
 
     print('X_train:', X)
     print('y_train:', y)
