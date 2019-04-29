@@ -6,9 +6,11 @@ from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dropout, Input, Bidirectional
 import os
 from keras.datasets import mnist
+from examples import prepare_examples
 from sklearn.model_selection import train_test_split
 import numpy as np
 from keras.utils import to_categorical
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 import numpy as np
 
 from tensorflow.python.keras.layers import LSTM, Dense
@@ -127,13 +129,23 @@ if __name__ == "__main__":
 
     model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 
+    monitor = EarlyStopping(monitor='val_loss', min_delta=1e-3, patience=5, verbose=0, mode='auto')
+    checkpointer = ModelCheckpoint(filepath='best_weights.hdf5', verbose=0, save_best_only=True)
+
     print(model.input_shape)
     print(model.output_shape)
 
     model.fit(
+        X_train, 
+        y_train, epochs=1, validation_data=
+        (X_test, 
+        y_test)
+        callbacks=
+        [monitor, checkpointer]
         X,
         y, epochs=200, validation_data=(X, y)
         )
+    model.load_weights('best_weights.hdf5')
 
     # print(model.predict(np.array([[[72, 64, 0, 0, 0, 0, 0, 0], [72, 69, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [63, 0, 0, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [68, 71, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [84, 72, 57, 0, 0, 0, 0, 0]]])))
 
