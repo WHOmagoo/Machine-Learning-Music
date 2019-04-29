@@ -1,9 +1,11 @@
 import copy
 
+from keras import metrics, Input, Model
 import tensorflow as tf
+from keras.layers import Bidirectional, Dropout
 from keras.utils import to_categorical
-from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Dropout, Input, Bidirectional
+# from tensorflow.keras.models import Sequential, Model
+# from tensorflow.keras.layers import Dropout, Input, Bidirectional
 import os
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import EarlyStopping
@@ -92,8 +94,8 @@ if __name__ == "__main__":
     print('Number of training itmes: ', len(X))
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = .2)
-    y_train = to_categorical(y_train[:,:1], num_classes=92, dtype='int')
-    y_test = to_categorical(y_test[:,:1], num_classes=92, dtype='int')
+    # y_train = to_categorical(y_train[:,:1], num_classes=92, dtype='int')
+    # y_test = to_categorical(y_test[:,:1], num_classes=92, dtype='int')
 
     inputs = Input(shape=(256,8), dtype=tf.int64)
     # inputs = Input(shape=X_train[0].shape)
@@ -119,25 +121,8 @@ if __name__ == "__main__":
     pred8 = (Dense(1, activation='softmax'))(x)"""
 
     model = Model(inputs=inputs, outputs=[pred])
-    
     opt = tf.keras.optimizers.Adam(lr=1e-3, decay=1e-5)
-
-    model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
-
-    monitor = EarlyStopping(monitor='val_loss', min_delta=1e-3, patience=5, verbose=0, mode='auto')
-    checkpointer = ModelCheckpoint(filepath='best_weights.hdf5', verbose=0, save_best_only=True)
-
-    print(model.input_shape)
-    print(model.output_shape)
-
-    model.fit(
-        X_train, 
-        y_train, epochs=60, validation_data=
-        (X_test, 
-        y_test),
-        callbacks=[monitor, checkpointer],
-        )
-
+    model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
     model.load_weights('best_weights.hdf5')
 
     # print(model.predict(np.array([[[72, 64, 0, 0, 0, 0, 0, 0], [72, 69, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [63, 0, 0, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [68, 71, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [84, 72, 57, 0, 0, 0, 0, 0]]])))
@@ -146,6 +131,11 @@ if __name__ == "__main__":
 
     starting_notes = [[72, 64, 0, 0, 0, 0, 0, 0], [72, 69, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [63, 0, 0, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [68, 71, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [84, 72, 57, 0, 0, 0, 0, 0]]
     padded_input = [[0] * 8] * (input_size - len(starting_notes)) + starting_notes
+
+    for chord in padded_input:
+        for note in chord:
+            if note != 0:
+                note -= 111
 
     # final_input = []
     #
