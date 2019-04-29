@@ -1,22 +1,16 @@
 import copy
 
 import tensorflow as tf
-from keras import metrics
+from keras.utils import to_categorical
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dropout, Input, Bidirectional
 import os
-from keras.datasets import mnist
-from examples import prepare_examples
 from sklearn.model_selection import train_test_split
+from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.callbacks import ModelCheckpoint
 import numpy as np
-from keras.utils import to_categorical
-from keras.callbacks import EarlyStopping, ModelCheckpoint
-import numpy as np
-
 from tensorflow.python.keras.layers import LSTM, Dense
-
-import examples as ex
-from examples import prepare_examples, prepare_examples_with_views
+from examples import prepare_examples_with_views
 from musicLoading import make_midi
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #Blocks warning messages
@@ -86,7 +80,8 @@ def recursive_predic(model, startingData):
     return result
 
 if __name__ == "__main__":
-    session = tf.Session()
+    session = tf.Session(config=tf.ConfigProto(log_device_placement=True))
+    # print(device_lib.list_local_devices())
 
     input_size = 256
 
@@ -97,8 +92,8 @@ if __name__ == "__main__":
     print('Number of training itmes: ', len(X))
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = .2)
-    # y_train = to_categorical(y_train[:,:1], num_classes=92, dtype='int')
-    # y_test = to_categorical(y_test[:,:1], num_classes=92, dtype='int')
+    y_train = to_categorical(y_train[:,:1], num_classes=92, dtype='int')
+    y_test = to_categorical(y_test[:,:1], num_classes=92, dtype='int')
 
     inputs = Input(shape=(256,8), dtype=tf.int64)
     # inputs = Input(shape=X_train[0].shape)
@@ -123,7 +118,7 @@ if __name__ == "__main__":
     pred7 = (Dense(1, activation='softmax'))(x)
     pred8 = (Dense(1, activation='softmax'))(x)"""
 
-    model = Model(inputs=inputs, outputs=pred1)
+    model = Model(inputs=inputs, outputs=[pred])
     
     opt = tf.keras.optimizers.Adam(lr=1e-3, decay=1e-5)
 
@@ -137,14 +132,12 @@ if __name__ == "__main__":
 
     model.fit(
         X_train, 
-        y_train, epochs=1, validation_data=
+        y_train, epochs=60, validation_data=
         (X_test, 
-        y_test)
-        callbacks=
-        [monitor, checkpointer]
-        X,
-        y, epochs=200, validation_data=(X, y)
+        y_test),
+        callbacks=[monitor, checkpointer],
         )
+
     model.load_weights('best_weights.hdf5')
 
     # print(model.predict(np.array([[[72, 64, 0, 0, 0, 0, 0, 0], [72, 69, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [63, 0, 0, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [68, 71, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [84, 72, 57, 0, 0, 0, 0, 0]]])))
