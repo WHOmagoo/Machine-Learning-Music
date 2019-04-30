@@ -8,6 +8,19 @@ from keras.optimizers import Adam
 from examples import remove_rhythm
 from musicLoading import make_midi, load_data
 
+def get_model_to_train():
+    inputs = Input(shape=(256,8), dtype=tf.int64)
+    # inputs = Input(shape=X_train[0].shape)
+
+    lstm = Bidirectional(LSTM(124), merge_mode='concat', dtype=tf.int64)(inputs)
+    pred1 = Dense(88, activation='sigmoid')(lstm)
+
+    pred = Dropout(.4)(pred1)
+
+    model = Model(inputs=inputs, outputs=[pred])
+    opt = tf.keras.optimizers.Adam(lr=1e-3, decay=1e-5)
+    model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+
 
 def recursive_predic(model, startingData):
     result = copy.deepcopy(startingData)
