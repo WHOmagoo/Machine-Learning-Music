@@ -18,19 +18,22 @@ def get_model_to_train(gpu=False):
 
     lstmNodes = 88
     if gpu:
-        lstm = CuDNNLSTM(lstmNodes, unit_forget_bias=True)(inputs)
+        lstm = CuDNNLSTM(lstmNodes, unit_forget_bias=True, return_sequences=True)(inputs)
+        lstm = CuDNNLSTM(lstmNodes, unit_forget_bias=True)(lstm)
     else:
-        lstm = LSTM(lstmNodes, unit_forget_bias=True)(inputs)
+        lstm = LSTM(lstmNodes, unit_forget_bias=True, return_sequences=True)(inputs)
+        lstm = LSTM(lstmNodes, unit_forget_bias=True)(lstm)
 
-    pred1 = Dense(88, activation='sigmoid')(lstm)
+    pred1 = Dense(88, activation='softmax')(lstm)
 
 
 
     model = Model(inputs=inputs, outputs=[pred1])
     opt = Adam(lr=1e-3, decay=1e-5)
-    model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['categorical_accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['categorical_accuracy', 'accuracy'])
 
-    checkpointer = ModelCheckpoint(filepath='second.hdf5', verbose=0, save_best_only=True)
+    monitor = EarlyStopping(monitor='val_loss', min_delta=1e-3, patience=5, verbose=0, mode='auto')
+    checkpointer = ModelCheckpoint(filepath='third.hdf5', verbose=1, save_best_only=False)
 
     print_summary(model)
-    return model, checkpointer
+    return model, [checkpointer]

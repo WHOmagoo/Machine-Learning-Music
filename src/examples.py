@@ -460,13 +460,17 @@ def load_all_from_a_folder(folder_path):
 def convert_chord_to_output(chord):
     result = [int(0)] * 88
     i = 0
+
+    notes = []
     for i in range(88):
         if i + 21 in chord:
-            result[i] = 1
+            notes.append(i)
         # else:
         #     result[i] = zeroes_output[0]
 
-
+    if len(notes) > 0:
+        median_note = notes[len(notes) // 2]
+        result[median_note] = 1
     # result = np.array(result)
 
     return result
@@ -617,8 +621,8 @@ def prepare_examples_with_views(number_of_notes_per_input):
         leading_note_blanks = 0
 
     for song in noteDataset:
-        zero_padding = zeroes_input * (leading_note_blanks - 16)
-        np.insert(song, 0, zero_padding, axis=0)
+        # zero_padding = zeroes_input * (leading_note_blanks - 16)
+        # song = np.insert(song, 0, zero_padding, axis=0)
 
         for i in range(len(song) - 1 - number_of_notes_per_input):
             note_inputs.append(np.array(song[i:i + number_of_notes_per_input]))

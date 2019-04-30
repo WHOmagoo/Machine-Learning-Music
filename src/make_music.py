@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 
 import second_version
+import third_version
 from examples import remove_rhythm
 from musicLoading import make_midi, load_data
 
@@ -17,29 +18,36 @@ def recursive_predic(model, startingData):
         curData = np.array([curData])
         newNotes = model.predict(curData)[0]
         note_probabilities = [0] * 8
-        outputted_notes = [0] * 8
 
         noteCount = 0
-
+        best_note = 0
+        outputted_notes = []
         for note_index in range(len(newNotes)):
-            if newNotes[note_index] > note_probabilities[7]:
-                for index in range(8):
-                    if note_probabilities[index] < newNotes[note_index]:
-                        note_probabilities.insert(index, newNotes[note_index])
-                        note_probabilities.pop()
+            if newNotes[note_index] > .25:
+                outputted_notes.append(note_index)
 
-                        outputted_notes.insert(index, note_index)
-                        outputted_notes.pop()
-                        break
-
-        for index in range(7):
-            if note_probabilities[index] * .9 > note_probabilities[index + 1]:
-                for index2 in range(index, 8):
-                    outputted_notes[index2] = 0
+        if len(outputted_notes) == 1 and newNotes[outputted_notes[0]] < .7:
+            outputted_notes = [0] * 8
+        else:
+            outputted_notes += [0] * (8 - len(outputted_notes))
+        #     if newNotes[note_index] > note_probabilities[7]:
+        #         for index in range(8):
+        #             if note_probabilities[index] < newNotes[note_index]:
+        #                 note_probabilities.insert(index, newNotes[note_index])
+        #                 note_probabilities.pop()
+        #
+        #                 outputted_notes.insert(index, note_index)
+        #                 outputted_notes.pop()
+        #                 break
+        #
+        # for index in range(7):
+        #     if note_probabilities[index] * .9 > note_probabilities[index + 1]:
+        #         for index2 in range(index+1, 8):
+        #             outputted_notes[index2] = 0
 
         result.append(outputted_notes)
         curData = np.delete(curData[0], 0, axis=0)
-        curData = np.append(curData, [note_probabilities], axis=0)
+        curData = np.append(curData, [outputted_notes], axis=0)
         # curData = np.array([curData)
 
     print("Raw results", result)
@@ -83,7 +91,7 @@ if __name__ == '__main__':
     # model.load_weights('best_weights.hdf5')
 
 
-    midData = load_data("/home/whomagoo/github/MLMusic/Music/kunstderfuge.com/scarlatti 34.mid")
+    midData = load_data("/home/whomagoo/github/MLMusic/Music/kunstderfuge.com/scarlatti 23.mid")
 
     notes = remove_rhythm(midData)
     notes = notes[:input_size]
@@ -101,8 +109,8 @@ if __name__ == '__main__':
             j+=1
         i+=1
 
-    model, nothing = second_version.get_model_to_train()
-    model.load_weights('second.hdf5')
+    model, nothing = third_version.get_model_to_train()
+    model.load_weights('third.hdf5')
 
     results = recursive_predic(model, notes)
 
