@@ -3,9 +3,11 @@ import tensorflow as tf
 import os
 
 from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.utils import to_categorical
 from sklearn.model_selection import train_test_split
 import numpy as np
 
+import fourth_version
 import second_version
 import third_version
 from examples import prepare_examples_with_views
@@ -21,16 +23,21 @@ if __name__ == "__main__":
     input_size = 256
 
     X, y = prepare_examples_with_views(input_size)
-    model, callbackItems = third_version.get_model_to_train(True)
+
+    # y = to_categorical(y, num_classes=88, dtype='int')
+
+    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = .2)
+
+    model, callbackItems = fourth_version.get_model_to_train(True)
 
 
     print('Finished prep, shape ', X.shape)
 
     print('Number of training itmes: ', len(X))
 
-    # model.load_weights('third.hdf5')
+    # model.load_weights('fourth.hdf5')
 
-    model.fit(X, y, epochs=1024, batch_size=64, initial_epoch=9, validation_split=.2, callbacks=callbackItems)
+    model.fit(X, y, epochs=1024, batch_size=64, initial_epoch=0, validation_split=.2, callbacks=callbackItems)
 
     # print(model.predict(np.array([[[72, 64, 0, 0, 0, 0, 0, 0], [72, 69, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [63, 0, 0, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [68, 71, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [84, 72, 57, 0, 0, 0, 0, 0]]])))
 

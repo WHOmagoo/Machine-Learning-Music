@@ -2,6 +2,7 @@ import copy
 import numpy as np
 import tensorflow as tf
 
+import fourth_version
 import second_version
 import third_version
 from examples import remove_rhythm
@@ -23,10 +24,10 @@ def recursive_predic(model, startingData):
         best_note = 0
         outputted_notes = []
         for note_index in range(len(newNotes)):
-            if newNotes[note_index] > .25:
+            if newNotes[note_index] > 1/7.0:
                 outputted_notes.append(note_index)
 
-        if len(outputted_notes) == 1 and newNotes[outputted_notes[0]] < .7:
+        if len(outputted_notes) == 1 and newNotes[outputted_notes[0]] < .35:
             outputted_notes = [0] * 8
         else:
             outputted_notes += [0] * (8 - len(outputted_notes))
@@ -46,8 +47,11 @@ def recursive_predic(model, startingData):
         #             outputted_notes[index2] = 0
 
         result.append(outputted_notes)
+        result.append([0] * 8)
         curData = np.delete(curData[0], 0, axis=0)
+        curData = np.delete(curData, 0, axis=0)
         curData = np.append(curData, [outputted_notes], axis=0)
+        curData = np.append(curData, [[0] * 8], axis=0)
         # curData = np.array([curData)
 
     print("Raw results", result)
@@ -64,7 +68,7 @@ def results_to_midi(results):
             if note == 0:
                 break;
 
-            curBeatNotes.append([note + 21, 1])
+            curBeatNotes.append([note + 21, 2])
 
         quantized.append(curBeatNotes)
 
@@ -91,7 +95,7 @@ if __name__ == '__main__':
     # model.load_weights('best_weights.hdf5')
 
 
-    midData = load_data("/home/whomagoo/github/MLMusic/Music/kunstderfuge.com/scarlatti 23.mid")
+    midData = load_data("/home/whomagoo/github/MLMusic/Music/kunstderfuge.com/scarlatti 223.mid")
 
     notes = remove_rhythm(midData)
     notes = notes[:input_size]
@@ -109,8 +113,8 @@ if __name__ == '__main__':
             j+=1
         i+=1
 
-    model, nothing = third_version.get_model_to_train()
-    model.load_weights('third.hdf5')
+    model, nothing = fourth_version.get_model_to_train()
+    model.load_weights('fourth.hdf5')
 
     results = recursive_predic(model, notes)
 
