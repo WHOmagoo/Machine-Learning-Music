@@ -34,7 +34,7 @@ def get_model_to_train(gpu=False):
     model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['categorical_accuracy', 'accuracy'])
 
     monitor = EarlyStopping(monitor='val_loss', min_delta=1e-3, patience=5, verbose=0, mode='auto')
-    checkpointer = ModelCheckpoint(filepath='fourth.hdf5', verbose=1, save_best_only=False)
+    checkpointer = ModelCheckpoint(filepath='fourth_single_output.hdf5', verbose=1, save_best_only=False)
 
     print_summary(model)
     return model, [checkpointer]

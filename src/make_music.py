@@ -89,7 +89,7 @@ if __name__ == '__main__':
     # model.load_weights('best_weights.hdf5')
 
 
-    midData = examples.load_data("/home/whomagoo/github/MLMusic/Music/kunstderfuge.com/scarlatti 69.mid")
+    midData = examples.load_data("/home/whomagoo/github/MLMusic/Music/kunstderfuge.com/scarlatti 24.mid")
 
     notes = remove_rhythm(midData)
     notes = notes[:input_size]
@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
 
     model, nothing = fourth_version.get_model_to_train()
-    model.load_weights('fourth.hdf5')
+    model.load_weights('fourth_single_output.hdf5')
 
     results = recursive_predic(model, notes)
 
