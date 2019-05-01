@@ -18,17 +18,14 @@ def get_model_to_train(gpu=False):
 
     if gpu:
         lstm = CuDNNLSTM(256, unit_forget_bias=True, return_sequences=True)(inputs)
-        lstm = CuDNNLSTM(128, unit_forget_bias=True, return_sequences=True)(lstm)
-        dropout = Dropout(.2)(lstm)
-        lstm = CuDNNLSTM(lstmNodes, unit_forget_bias=True)(dropout)
+        lstm = CuDNNLSTM(256, unit_forget_bias=True, return_sequences=True)(lstm)
+        lstm = CuDNNLSTM(lstmNodes, unit_forget_bias=True)(lstm)
     else:
         lstm = LSTM(256, unit_forget_bias=True, return_sequences=True)(inputs)
-        lstm = LSTM(128, unit_forget_bias=True, return_sequences=True)(lstm)
-        lstm = Dropout(.2)(lstm)
+        lstm = LSTM(256, unit_forget_bias=True, return_sequences=True)(lstm)
         lstm = LSTM(lstmNodes, unit_forget_bias=True)(lstm)
 
-    drop = Dropout(.2)(lstm)
-    pred1 = Dense(examples.num_notes, activation='softmax')(drop)
+    pred1 = Dense(examples.num_notes, activation='softmax')(lstm)
 
 
 
@@ -37,7 +34,7 @@ def get_model_to_train(gpu=False):
     model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['categorical_accuracy', 'accuracy'])
 
     monitor = EarlyStopping(monitor='val_loss', min_delta=1e-3, patience=5, verbose=0, mode='auto')
-    checkpointer = ModelCheckpoint(filepath = os.path.join('checkpoints', 'version4_1_1-e{epoch:03d}-ca{categorical_accuracy:.3f}-vca{val_categorical_accuracy:.3f}.hdf5'), verbose=1, save_best_only=False)
+    checkpointer = ModelCheckpoint(filepath = os.path.join('checkpoints', 'version4_1_2-e{epoch:03d}-ca{categorical_accuracy:.3f}-vca{val_categorical_accuracy:.3f}.hdf5'), verbose=1, save_best_only=False)
 
     print_summary(model)
     return model, [checkpointer]

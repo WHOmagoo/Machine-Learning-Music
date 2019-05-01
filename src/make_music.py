@@ -6,6 +6,7 @@ import examples
 import fourth_version
 import second_version
 import third_version
+import version4_1_1
 from examples import remove_rhythm
 from musicLoading import make_midi
 
@@ -87,7 +88,7 @@ if __name__ == '__main__':
     # model.load_weights('best_weights.hdf5')
 
 
-    midData = examples.load_data("/home/whomagoo/github/MLMusic/Music/kunstderfuge.com/scarlatti 24.mid")
+    midData = examples.load_data("/home/whomagoo/github/MLMusic/Music/kunstderfuge.com/scarlatti 127.mid")
 
     notes = remove_rhythm(midData)
     notes = notes[:input_size]
@@ -96,8 +97,8 @@ if __name__ == '__main__':
     # padded_input = [[0] * 8] * (input_size - len(starting_notes)) + starting_notes
 
 
-    model, nothing = fourth_version.get_model_to_train()
-    model.load_weights('fourth_single_output.hdf5')
+    model, nothing = version4_1_1.get_model_to_train()
+    model.load_weights('checkpoints/version4_1_1-e027-ca0.520-vca0.361.hdf5')
 
     results = recursive_predic(model, notes)
 
