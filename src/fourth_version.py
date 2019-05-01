@@ -6,27 +6,26 @@ from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.layers import Bidirectional, Dense, Dropout, LSTM, CuDNNLSTM
 from keras.optimizers import Adam
 from keras.utils import print_summary
-
-from examples import remove_rhythm
-from musicLoading import make_midi, load_data
+import examples
 
 def get_model_to_train(gpu=False):
-    inputs = Input(shape=(256,8))
+    inputs = Input(shape=(256,examples.notes_per_chord))
     # inputs = Input(shape=X_train[0].shape)
 
     lstm = None
 
-    lstmNodes = 88
+    lstmNodes = examples.num_notes
+
     if gpu:
         lstm = CuDNNLSTM(256, unit_forget_bias=True, return_sequences=True)(inputs)
-        lstm = CuDNNLSTM(256, unit_forget_bias=True, return_sequences=True)(lstm)
+        lstm = CuDNNLSTM(128, unit_forget_bias=True, return_sequences=True)(lstm)
         lstm = CuDNNLSTM(lstmNodes, unit_forget_bias=True)(lstm)
     else:
         lstm = LSTM(256, unit_forget_bias=True, return_sequences=True)(inputs)
-        lstm = LSTM(256, unit_forget_bias=True, return_sequences=True)(lstm)
+        lstm = LSTM(128, unit_forget_bias=True, return_sequences=True)(lstm)
         lstm = LSTM(lstmNodes, unit_forget_bias=True)(lstm)
 
-    pred1 = Dense(88, activation='softmax')(lstm)
+    pred1 = Dense(examples.num_notes, activation='softmax')(lstm)
 
 
 
