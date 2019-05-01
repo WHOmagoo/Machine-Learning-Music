@@ -2,6 +2,7 @@ import tensorflow as tf
 import os
 
 import fourth_version
+import fourth_version_polyphonic
 import second_version
 import third_version
 from examples import prepare_examples_with_views
@@ -20,14 +21,14 @@ if __name__ == "__main__":
 
     # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = .2)
 
-    model, callbackItems = fourth_version.get_model_to_train(True)
+    model, callbackItems = fourth_version_polyphonic.get_model_to_train(True)
 
 
     print('Finished prep, shape ', X.shape)
 
     print('Number of training itmes: ', len(X))
 
-    # model.load_weights('fourth.hdf5')
+    # model.load_weights('fourth_single_output.hdf5')
 
     model.fit(X, y, epochs=1024, batch_size=64, initial_epoch=0, validation_split=.2, callbacks=callbackItems, class_weight='auto')
 

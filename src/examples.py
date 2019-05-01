@@ -5,7 +5,8 @@ from music21.midi import DeltaTime
 from music21 import *
 import os
 import numpy as np
-num_notes = 65
+note_center = 64
+num_notes = 61
 zeroes_output = [[0] * num_notes]
 zeroes_output[0][num_notes - 1] = 1
 notes_per_chord = 3
@@ -183,8 +184,8 @@ def quantize_midi(track, ticks_per_quarternote):
         length = get_tick_length_of_note(track, note_index)
         if length is not None and length > 0:
             note_type = get_note_type(ticks_per_quarternote, length)
-            if note_type is not None and note_type > 0 and track.events[note_index].pitch in range(21+num_notes//2,88+21-num_notes//2):
-                tuple = [track.events[note_index].pitch - (21+num_notes//2) + 1, note_type]
+            if note_type is not None and note_type > 0 and track.events[note_index].pitch in range(note_center-(num_notes//2), note_center+(num_notes//2)):
+                tuple = [track.events[note_index].pitch - note_center + (num_notes//2) + 1, note_type]
                 result[current_time].append(tuple)
 
     while result[-1] == []:
@@ -456,21 +457,8 @@ def load_all_from_a_folder(folder_path):
     return noteDataset
 
 
-# Expects for the rhythm to be removed already and the chord to use the midi number not 0 based number
 def convert_chord_to_output(chord):
-    result = get_class(0)
-    count = 0
-
-    chord = -(np.sort(-chord))
-
-    for note in chord:
-        if note == 0:
-            break
-        count += 1
-
-    median_note = chord[count // 2]
-
-    return median_note
+    return get_chord(chord)
 
 
 def convert_quantized_to_input(midiData):
@@ -490,7 +478,7 @@ def convert_quantized_to_input(midiData):
     return np.array(notes)
 
 
-chord_dictionary = {}
+chord_dictionary = {(0,0,0) : [1] + [0] * (num_notes - 1)}
 # Removes rhythm and converts to one hot encoding
 def get_chord(stripped_chord):
 
@@ -498,9 +486,10 @@ def get_chord(stripped_chord):
     if chord_tuple in chord_dictionary:
         return chord_dictionary[chord_tuple]
     else:
-        chord = np.zeros(num_notes)
+        chord = np.zeros(num_notes, dtype=np.int8)
         for note in stripped_chord:
-            chord[note] = 1
+            if note != 0:
+                chord[note] = 1
         chord_dictionary[chord_tuple] = chord
         return chord
 
@@ -511,7 +500,7 @@ def remove_rhythm(midiData):
         chord_count += 1
 
 
-    notes = np.zeros((chord_count,notes_per_chord), dtype=np.int32)
+    notes = np.zeros((chord_count,notes_per_chord), dtype=np.int8)
 
     cur_chord = 0
     for chord in midiData:
@@ -523,6 +512,8 @@ def remove_rhythm(midiData):
                 break
 
         cur_chord+=1
+
+    notes = np.sort(notes)
 
     return notes
 
@@ -572,9 +563,8 @@ def prepare_examples_with_views(number_of_notes_per_input):
 
         for i in range(len(song) - 1 - number_of_notes_per_input):
             note_inputs[input_num] = song[i:i + number_of_notes_per_input]
-            output_note = convert_chord_to_output(song[i + number_of_notes_per_input])
-            note_outputs[input_num] = get_class(output_note)
-            class_weight[output_note] += 1
+            output_notes = convert_chord_to_output(song[i + number_of_notes_per_input])
+            note_outputs[input_num] = output_notes
             input_num+=1
 
         song_count+= 1
