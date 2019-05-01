@@ -1,4 +1,6 @@
 import copy
+from random import Random
+
 import numpy as np
 import tensorflow as tf
 
@@ -16,6 +18,10 @@ def recursive_predic(model, startingData):
 
     result = np.append(result, [[1,2,3]], axis=0)
 
+    rand = Random()
+
+    rand.seed()
+
     curData = copy.deepcopy(startingData)
     for i in range(16 * 32):
         curData = np.array([curData])
@@ -23,10 +29,21 @@ def recursive_predic(model, startingData):
         best_note = 0
         best_prob = 0
 
+        random = rand.random()
+
         for note_index in range(len(newNotes)):
             if newNotes[note_index] > best_prob:
                 best_prob = newNotes[note_index]
                 best_note = note_index
+
+        # if random < .25:
+        #     for note_index in range(len(newNotes)):
+        #         if note_index == best_note:
+        #             continue
+        #         else:
+        #             if newNotes[note_index] > best_prob:
+        #                 best_prob = newNotes[note_index]
+        #                 best_note = note_index
 
         outputted_notes = [best_note] + [0] * (examples.notes_per_chord - 1)
         #     if newNotes[note_index] > note_probabilities[7]:
@@ -88,7 +105,8 @@ if __name__ == '__main__':
     # model.load_weights('best_weights.hdf5')
 
 
-    midData = examples.load_data("/home/whomagoo/github/MLMusic/Music/kunstderfuge.com/scarlatti 127.mid")
+    # midData = examples.load_data("/home/whomagoo/github/MLMusic/Music/kunstderfuge.com/scarlatti 127.mid")
+    midData = examples.load_data("/home/whomagoo/github/MLMusic/Music/kunstderfuge.com/scarlatti 182.mid")
 
     notes = remove_rhythm(midData)
     notes = notes[:input_size]
@@ -98,7 +116,8 @@ if __name__ == '__main__':
 
 
     model, nothing = version4_1_1.get_model_to_train()
-    model.load_weights('checkpoints/version4_1_1-e027-ca0.520-vca0.361.hdf5')
+    # model.load_weights('checkpoints/version4_1_2-e066-ca0.959-vca0.322.hdf5')
+    model.load_weights('checkpoints/version4_1_2-e089-ca0.986-vca0.323.hdf5')
 
     results = recursive_predic(model, notes)
 
