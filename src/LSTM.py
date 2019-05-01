@@ -5,6 +5,7 @@ import fourth_version
 import fourth_version_polyphonic
 import second_version
 import third_version
+import version4_1_1
 from examples import prepare_examples_with_views
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #Blocks warning messages
@@ -21,7 +22,7 @@ if __name__ == "__main__":
 
     # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = .2)
 
-    model, callbackItems = fourth_version_polyphonic.get_model_to_train(True)
+    model, callbackItems = version4_1_1.get_model_to_train(True)
 
 
     print('Finished prep, shape ', X.shape)

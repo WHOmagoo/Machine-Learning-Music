@@ -52,22 +52,20 @@ def recursive_predic(model, startingData):
 
     return result
 
-def results_to_midi(results):
+def results_to_midi(results, filename='out.mid'):
     quantized = []
 
     for beat in results:
         curBeatNotes = []
 
         for note in beat:
-            if note == 0:
-                break;
-
-            curBeatNotes.append([note + 21 + examples.num_notes // 2, 1])
+            if note != 0:
+                curBeatNotes.append([note + examples.note_center - examples.num_notes // 2 - 1, 1])
 
         quantized.append(curBeatNotes)
 
     midi = make_midi(quantized, 480)
-    midi.open("out.mid", 'wb')
+    midi.open(filename, 'wb')
     midi.write()
 
 if __name__ == '__main__':

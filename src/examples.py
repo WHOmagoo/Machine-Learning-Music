@@ -6,11 +6,11 @@ from music21 import *
 import os
 import numpy as np
 note_center = 64
-num_notes = 61
+num_notes = 75
 zeroes_output = [[0] * num_notes]
 zeroes_output[0][num_notes - 1] = 1
 notes_per_chord = 3
-classes = np.zeros((num_notes,num_notes))
+classes = np.zeros((num_notes,num_notes), dtype=np.int32)
 
 for i in range(num_notes):
     classes[i][i] = 1
@@ -286,7 +286,7 @@ def make_midi(quantized_data, ticks_per_sixteenth_note):
                     beats_passed - last_event_written_at_beat) * ticks_per_sixteenth_note) / ticks_per_sixteenth_note)
 
         for note in beat:
-            if note[1] > 0:
+            if note > 0:
                 time = (beats_passed - last_event_written_at_beat) * ticks_per_sixteenth_note
                 spacing = DeltaTime(track=track, time=time)
                 track.events.append(spacing)
@@ -458,7 +458,18 @@ def load_all_from_a_folder(folder_path):
 
 
 def convert_chord_to_output(chord):
-    return get_chord(chord)
+    count = 0
+
+    chord = -(np.sort(-chord))
+
+    for note in chord:
+        if note != 0:
+            count += 1
+
+    median_note = chord[count // 2]
+
+    return get_class(median_note)
+
 
 
 def convert_quantized_to_input(midiData):
@@ -486,7 +497,7 @@ def get_chord(stripped_chord):
     if chord_tuple in chord_dictionary:
         return chord_dictionary[chord_tuple]
     else:
-        chord = np.zeros(num_notes, dtype=np.int8)
+        chord = np.zeros(num_notes, dtype=np.int32)
         for note in stripped_chord:
             if note != 0:
                 chord[note] = 1
@@ -500,7 +511,7 @@ def remove_rhythm(midiData):
         chord_count += 1
 
 
-    notes = np.zeros((chord_count,notes_per_chord), dtype=np.int8)
+    notes = np.zeros((chord_count,notes_per_chord), dtype=np.int32)
 
     cur_chord = 0
     for chord in midiData:

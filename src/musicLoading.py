@@ -188,7 +188,7 @@ def quantized_to_midi(quantized_data):
     track.events.append(MidiEvent())
     track.setChannel(1)
 
-def write_starting_messages(track=MidiTrack(0)):
+def write_starting_messages(track):
     no_time_spacing = DeltaTime(track, time=0)
 
     track.events.append(no_time_spacing)
@@ -241,7 +241,7 @@ def write_starting_messages(track=MidiTrack(0)):
 
 
 def end_track(track):
-    track.events.append(DeltaTime(track=track, time=0))
+    track.events.append(DeltaTime(track=track, time=1))
 
     end_of_track = MidiEvent(track=track, type='END_OF_TRACK')
     end_of_track.data = b''
@@ -254,7 +254,8 @@ def make_midi(quantized_data, ticks_per_sixteenth_note):
     result = MidiFile()
     result.format = 0
     result.ticksPerQuarterNote = ticks_per_sixteenth_note * 4
-    track = write_starting_messages()
+    track = MidiTrack(0)
+    track = write_starting_messages(track)
 
     beats_passed = 0
 
