@@ -1,10 +1,19 @@
+import random
+
 from music21.midi import MidiFile
 from music21.midi import MidiTrack
 from music21.midi import MidiEvent
 from music21.midi import DeltaTime
+from music21.midi import ChannelVoiceMessages
+from music21.midi import MetaEvents
 from music21 import *
 import os
 import numpy as np
+
+from timeit import default_timer as timer
+time_spent = [0,0,0,0,0,0,0]
+
+
 num_notes = 65
 zeroes_output = [[0] * num_notes]
 zeroes_output[0][num_notes - 1] = 1
@@ -49,12 +58,12 @@ def get_next_events(tracks):
             else:
                 passed_first_delta_time = True
 
-        if cur_event.type in ['DeltaTime', 'NOTE_ON', 'NOTE_OFF'] or lowest_index == 0:
+        if cur_event.type in ['DeltaTime', ChannelVoiceMessages.NOTE_ON, ChannelVoiceMessages.NOTE_OFF] or lowest_index == 0:
             next_events.append(cur_event)
 
         cur_track_events.remove(cur_event)
 
-        if cur_event.type == 'END_OF_TRACK' and (lowest_index != 0 or len(tracks) == 0):
+        if cur_event.type == midi.MetaEvents.END_OF_TRACK and (lowest_index != 0 or len(tracks) == 0):
             # tracks.remove(tracks[lowest_index])
             # If we removed from the last track and reached END_OF_TRACK break out of the loop and continue
             # as the rest of the code will remove this track and return its contents
@@ -98,8 +107,12 @@ def removeTime(amount_of_time, index_to_skip, tracks):
                     if cur_event.time > 0:
                         cur_event.time -= amount_of_time
 
-
 def merge_tracks(tracks):
+    # longest = 0
+    # for track in tracks:
+    #     if len(track.events)  > longest:
+    #         longest = len(track.events)
+
     merged_events = []
     time_passed = 0
 
@@ -116,7 +129,8 @@ def merge_tracks(tracks):
 
     midi_track = MidiTrack(0)
     midi_track.events = merged_events
-    midi_track.length = time_passed
+    #TODO check effects of this
+    #midi_track.length = time_passed
 
     for item in midi_track.events:
         item.track = midi_track
@@ -128,7 +142,7 @@ def merge_tracks(tracks):
 
 def get_tick_length_of_note(track, index_of_start):
     event = track.events[index_of_start]
-    if event.type != 'NOTE_ON':
+    if event.type != ChannelVoiceMessages.NOTE_ON:
         return None
 
     length_of_note = 0
@@ -138,10 +152,10 @@ def get_tick_length_of_note(track, index_of_start):
         if current_event.type == 'DeltaTime':
             length_of_note += current_event.time
         elif current_event.pitch == event.pitch:
-            if current_event.type == 'NOTE_OFF':
+            if current_event.type == ChannelVoiceMessages.NOTE_OFF:
                 break
-            elif current_event.type == 'NOTE_ON' and current_event.velocity == 0:
-                current_event.type = 'NOTE_OFF'
+            elif current_event.type == ChannelVoiceMessages.NOTE_ON and current_event.velocity == 0:
+                current_event.type = ChannelVoiceMessages.NOTE_OFF
                 break
 
     return length_of_note
@@ -166,17 +180,38 @@ def get_note_type(ticks_per_quarter_note, tick_length, round_nearest=False):
             return 0
 
 
+longest = 1024
+
+
+def array_append(array, value, index):
+    if index >= len(array):
+        global longest
+        longest *= 2
+        result = [[]] * longest
+        result[:len(array)] = array
+        result[index] = value
+        return result
+    else:
+        array[index] = value
+        return array
+
+
 def quantize_midi(track, ticks_per_quarternote):
     # result, each index is one 16th note, each item will be a list of notes that are started at the time along with their length
-    result = [[]]
+    result = [-1] * longest
+    result[0] = []
     current_time = 0
     current_time_exact = 0
+
+    cur_index = 0
     for note_index in range(len(track.events)):
         if track.events[note_index].type == "DeltaTime":
             current_time_exact += track.events[note_index].time
             new_time_passed = get_note_type(ticks_per_quarternote, current_time_exact, True)
             for i in range(current_time, new_time_passed):
-                result.append([])
+                cur_index += 1
+                result = array_append(result, [], cur_index)
+                #result.append([])
 
             current_time = new_time_passed
 
@@ -187,10 +222,11 @@ def quantize_midi(track, ticks_per_quarternote):
                 tuple = [track.events[note_index].pitch - (21+num_notes//2) + 1, note_type]
                 result[current_time].append(tuple)
 
-    while result[-1] == []:
-        result.pop()
+    resulting_size = len(result)
+    while len(result) > 0 and (result[resulting_size-1] == [] or result[resulting_size-1] == -1):
+        resulting_size -= 1
 
-    return result
+    return result[:resulting_size]
 
 
 def quantized_to_midi(quantized_data):
@@ -203,18 +239,18 @@ def quantized_to_midi(quantized_data):
     track.setChannel(1)
 
 
-def write_starting_messages(track=MidiTrack(0)):
+def write_starting_messages(track):
     no_time_spacing = DeltaTime(track, time=0)
 
     track.events.append(no_time_spacing)
 
-    channel_prefix = MidiEvent(track=track, type='MIDI_CHANNEL_PREFIX')
+    channel_prefix = MidiEvent(track=track, type=midi.MetaEvents.MIDI_CHANNEL_PREFIX)
     channel_prefix.data = b'\x00'
     track.events.append(channel_prefix)
 
     track.events.append(no_time_spacing)
 
-    track_name = MidiEvent(track=track, type='SEQUENCE_TRACK_NAME')
+    track_name = MidiEvent(track=track, type=MetaEvents.SEQUENCE_TRACK_NAME)
     track_name.data = bytes("Quantized Midi", 'ascii')
     track.events.append(track_name)
 
@@ -226,6 +262,7 @@ def write_starting_messages(track=MidiTrack(0)):
     #
     # track.events.append(no_time_spacing)
 
+    # SET_TEMPO should be MetaEvents.SET_TEMPO
     # tempo = MidiEvent(track=track, type='SET_TEMPO')
     # tempo.data = b'\x05\xe8\x19'#b'\x07\xA1\x20'
     # track.events.append(tempo)
@@ -238,13 +275,14 @@ def write_starting_messages(track=MidiTrack(0)):
 
     track.events.append(no_time_spacing)
 
-    program_change = MidiEvent(track=track, type='PROGRAM_CHANGE')
+    program_change = MidiEvent(track=track, type=ChannelVoiceMessages.PROGRAM_CHANGE)
     program_change.channel = 1
     program_change.data = 1
     track.events.append(program_change)
 
     # track.events.append(no_time_spacing)
     #
+    # Controller change should be ChannelVoiceMessages.CONTROLLER_CHANGE now
     # controller_change = MidiEvent(track=track, type='CONTROLLER_CHANGE')
     # controller_change.channel = 1
     # controller_change.parameter1 = 64
@@ -258,7 +296,7 @@ def write_starting_messages(track=MidiTrack(0)):
 def end_track(track):
     track.events.append(DeltaTime(track=track, time=0))
 
-    end_of_track = MidiEvent(track=track, type='END_OF_TRACK')
+    end_of_track = MidiEvent(track=track, type=midi.MetaEvents.END_OF_TRACK)
     end_of_track.data = b''
     track.events.append(end_of_track)
 
@@ -269,7 +307,7 @@ def make_midi(quantized_data, ticks_per_sixteenth_note):
     result = MidiFile()
     result.format = 0
     result.ticksPerQuarterNote = ticks_per_sixteenth_note * 4
-    track = write_starting_messages()
+    track = write_starting_messages(MidiTrack(0))
 
     beats_passed = 0
 
@@ -292,7 +330,7 @@ def make_midi(quantized_data, ticks_per_sixteenth_note):
 
                 last_event_written_at_beat = beats_passed
 
-                note_on = MidiEvent(track=track, type='NOTE_ON')
+                note_on = MidiEvent(track=track, type=ChannelVoiceMessages.NOTE_ON)
                 note_on.velocity = 50
                 note_on.pitch = note[0]
                 note_on.channel = 1
@@ -311,7 +349,7 @@ def make_midi(quantized_data, ticks_per_sixteenth_note):
         #
         #         last_event_written_at_beat = beats_passed
         #
-        #         note_off = MidiEvent(track=track, type='NOTE_OFF')
+        #         note_off = MidiEvent(track=track, type=ChannelVoiceMessages.NOTE_OFF)
         #         note_off.pitch = note[0]
         #         note_off.channel = 1
         #         note_off.parameter2 = 0
@@ -324,7 +362,8 @@ def make_midi(quantized_data, ticks_per_sixteenth_note):
         #     if note[1] <= 0:
         #         notes_to_end.remove(note)
 
-    end_notes(notes_to_end, track, ticks_per_sixteenth_note * 2)
+    # end_notes(notes_to_end, track, ticks_per_sixteenth_note * 2)
+    end_notes(notes_to_end, track, ticks_per_sixteenth_note)
 
     end_track(track)
     result.tracks.append(track)
@@ -344,7 +383,7 @@ def end_notes(notes_to_end, track, first_delta_time_to_use):
         else:
             track.events.append(DeltaTime(track=track, time=0))
 
-        end_note = MidiEvent(track, type='NOTE_OFF')
+        end_note = MidiEvent(track, type=ChannelVoiceMessages.NOTE_OFF)
         end_note.pitch = note[0]
         end_note.channel = 1
         end_note.parameter2 = 0
@@ -381,7 +420,7 @@ def merge_midi(midi):
 def find_note_stops(midi):
     for tInedx, track in enumerate(midi.tracks):
         for eIndex, event in enumerate(track.events):
-            if event.type == 'NOTE_OFF':
+            if event.type == ChannelVoiceMessages.NOTE_OFF:
                 print("Note off", tInedx, eIndex)
 
 
@@ -389,19 +428,17 @@ def read_quantize_write_midi(nameRead, nameWrite):
     read = MidiFile()
     read.open(nameRead)
     read.read()
+    read.close()
 
-    # find_note_stops(read)
+    find_note_stops(read)
 
     merged_track = merge_tracks(read.tracks)
     quantized_notes = quantize_midi(merged_track[0], read.ticksPerQuarterNote)
 
-    write = MidiFile()
-    # write.format = 0
-    # write.tracks = merged_track
-    write = make_midi(quantized_notes, read.ticksPerQuarterNote)
+    write = make_midi(quantized_notes, read.ticksPerQuarterNote // 4)
     write.open(nameWrite + " modified.mid", 'wb')
     write.write()
-
+    write.close()
 
 def get_longest_track(midi):
     index = 0
@@ -419,20 +456,32 @@ def get_longest_track(midi):
 
 
 def load_data(path):
-    midi = MidiFile()
-    midi.open(path)
-    midi.read()
-    merged = merge_tracks(midi.tracks)
 
-    quantized = quantize_midi(merged[0], midi.ticksPerQuarterNote)
-    midi.close()
+    start = timer()
+    midi_in = MidiFile()
+    midi_in.open(path)
+    midi_in.read()
+
+    time_spent[0] += timer() - start
+
+    start = timer()
+    merged = merge_tracks(midi_in.tracks)
+    time_spent[1] += timer() - start
+
+    start = timer()
+    quantized = quantize_midi(merged[0], midi_in.ticksPerQuarterNote)
+    midi_in.close()
+    time_spent[2] = timer() - start
 
     return quantized
 
 
 def load_all_from_a_folder(folder_path):
-    noteDataset = []
+    #TODO need to change this away from hardcoded
+    noteDataset = [-1] * 500
     # lengthDataset = []
+
+    cur_song = 0
 
     for root, dirs, files in os.walk(folder_path):
         for name in files:
@@ -446,14 +495,20 @@ def load_all_from_a_folder(folder_path):
                 #         filteredBritaWater.append(midData[i])
 
                 # notes = convert_quantized_to_input(midData)
+                start = timer()
                 notes = remove_rhythm(midData)
+                time_spent[3] = timer() - start
 
                 # print(max([len(chord) for chord in notes]))
-                noteDataset.append(notes)
+
+                start = timer()
+                noteDataset[cur_song] = notes
+                cur_song += 1
+                time_spent[4] = timer() - start
                 # noteDataset.append(notes)
                 # lengthDataset.append(lengths)
 
-    return noteDataset
+    return noteDataset[:cur_song]
 
 
 # Expects for the rhythm to be removed already and the chord to use the midi number not 0 based number
@@ -511,7 +566,8 @@ def remove_rhythm(midiData):
         chord_count += 1
 
 
-    notes = np.zeros((chord_count,notes_per_chord), dtype=np.int32)
+    #TODO modify this to allow a chord of greater size
+    notes = np.zeros((chord_count,16), dtype=np.float32)
 
     cur_chord = 0
     for chord in midiData:
@@ -527,17 +583,62 @@ def remove_rhythm(midiData):
     return notes
 
 
-def load_all_examples():
-    noteDataset = load_all_from_a_folder("../Music/piano-midi.de/")
-    noteDataset += load_all_from_a_folder('../Music/kunstderfuge.com/')
+
+
+def load_all_examples(cwd):
+    noteDataset = load_all_from_a_folder(cwd + "Music/piano-midi.de/")
+    noteDataset += load_all_from_a_folder(cwd + 'Music/kunstderfuge.com/')
     return np.array(noteDataset)
 
 
-
-
-def prepare_examples_with_views(number_of_notes_per_input):
+def prepare_examples_for_series_generator(cwd):
     print("Loading midi files from disk")
-    noteDataset = load_all_examples()
+    noteDataset = load_all_examples(cwd)
+
+    print("Finished loading from disk. Converting to input representation")
+
+    number_of_notes = 65
+
+    zero_pad_length = 200
+    print("Allocate array space")
+    result_data = {}
+    print("Finished allocation")
+    song_num = 0
+
+
+    start = timer()
+
+    for song in noteDataset:
+        adjusted_song = convert_to_multihot(song, number_of_notes, zero_pad_length)
+        result_data[song_num] = adjusted_song
+        song_num += 1
+
+    time_spent[5] = timer() - start
+
+    return result_data
+
+
+def convert_to_multihot(song, number_of_notes, zero_pad_length):
+    song_length = len(song)
+    result = np.zeros((song_length + 2 * zero_pad_length, number_of_notes), dtype=np.float32)
+    for i in range(len(song)):
+        firstNote = True
+
+        # Remember, note zero means no note
+        for note in song[i]:
+            if note == 0 or note is None:
+                if firstNote is True:
+                    result[i + zero_pad_length][0] = 1
+                break
+            result[i + zero_pad_length][int(note)] = 1
+            firstNote = False
+
+    return result
+
+
+def prepare_examples_with_views(number_of_notes_per_input, cwd):
+    print("Loading midi files from disk")
+    noteDataset = load_all_examples(cwd)
 
     print("Finished loading from disk. Converting to input representation")
 
