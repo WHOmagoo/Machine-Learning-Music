@@ -16,7 +16,7 @@ import datetime
 
 rootDir = "/Machine-Learning-Music/"
 inputPath = rootDir + "Models/Music3_2020-09-26 13:24:04.645036.index"
-outputPath = rootDir + "Models/GOOF_" + str(datetime.datetime.now())
+outputPath = rootDir + "Models/Simple_" + str(datetime.datetime.now())
 
 
 
@@ -69,12 +69,15 @@ if __name__ == '__main__':
 
     #tensorflow.python.framework.errors_impl.InvalidArgumentError:  Incompatible shapes: [32,149] vs. [32,65]
     model = models.Sequential()
+    # GOOF
     #The LSTM needs data with the format of [samples, time steps and features]
-    model.add(layers.LSTM(512, activation='tanh', recurrent_activation='sigmoid', recurrent_dropout=0, unroll=False, use_bias=True, return_sequences=True, time_major=False))
-    model.add(layers.LSTM(256, activation='tanh', recurrent_activation='sigmoid', recurrent_dropout=0, unroll=False, use_bias=True, return_sequences=True, time_major=False))
-    model.add(layers.LSTM(124, activation='tanh', recurrent_activation='sigmoid', recurrent_dropout=0, unroll=False, use_bias=True, return_sequences=False, time_major=False))
+    # model.add(layers.LSTM(512, activation='tanh', recurrent_activation='sigmoid', recurrent_dropout=0, unroll=False, use_bias=True, return_sequences=True, time_major=False))
+    # model.add(layers.LSTM(256, activation='tanh', recurrent_activation='sigmoid', recurrent_dropout=0, unroll=False, use_bias=True, return_sequences=True, time_major=False))
+    # model.add(layers.LSTM(124, activation='tanh', recurrent_activation='sigmoid', recurrent_dropout=0, unroll=False, use_bias=True, return_sequences=False, time_major=False))
+    
+    # Simple
+    model.add(layers.LSTM(256, activation='tanh', recurrent_activation='sigmoid', recurrent_dropout=0, unroll=False, use_bias=True, return_sequences=False, time_major=False))
     model.add(layers.Dense(number_of_outputs, activation='sigmoid'))
-
 
     inputPath = None
 
@@ -98,7 +101,7 @@ if __name__ == '__main__':
     print("Weights sum to " + str(sum))
 
     loss_fn = losses.BinaryCrossentropy()
-    opt = optimizers.Adam(learning_rate=.03)
+    opt = optimizers.Adam(learning_rate=.0005)
 
     myMetric = metrics.CategoricalCrossentropy()
 
@@ -112,7 +115,7 @@ if __name__ == '__main__':
     print(outputPath)
 
     model.fit(input_data,
-              epochs=5000,
+              epochs=50000,
               callbacks=[cp_callback],
               class_weight=class_weights,
               )

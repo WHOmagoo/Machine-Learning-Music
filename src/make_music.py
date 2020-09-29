@@ -67,7 +67,7 @@ def results_to_midi(results):
         quantized.append(curBeatNotes)
 
     midi = make_midi(quantized, 480)
-    midi.open("out.mid", 'wb')
+    midi.open("single notes.mid", 'wb')
     midi.write()
 
 if __name__ == '__main__':
