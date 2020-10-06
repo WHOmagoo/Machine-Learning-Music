@@ -4,6 +4,7 @@ import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.python.keras import models
 
+import ParseAllMusic
 import examples
 from examples import remove_rhythm
 
@@ -12,7 +13,7 @@ def recursive_predic(model, startingData, prediciton_count=(16*32)):
     result = np.concatenate([startingData, np.zeros((prediciton_count, examples.num_notes))])
     result = result.reshape((1, result.shape[0], result.shape[1]))
 
-    windowSize = 256
+    windowSize = 256 * 4
 
     for i in range(prediciton_count):
         curData = result[:,i:(i + windowSize), :]
@@ -23,22 +24,30 @@ def recursive_predic(model, startingData, prediciton_count=(16*32)):
         second_best_note = 0
         second_prob = 0
 
-        for note_index in range(len(newNotes)):
-            if newNotes[note_index] > best_prob:
-                second_best_note = best_note
-                second_prob = best_prob
-                best_prob = newNotes[note_index]
-                best_note = note_index
-            elif newNotes[note_index] > second_prob:
-                second_prob = newNotes[note_index]
-                second_best_note = note_index
+        cur_note_index = 1
 
-        result[0, i + windowSize, best_note] = 1
-        result[0, i + windowSize, second_best_note] = 1
+        if newNotes[0] < .5:
+            for note_index in range(1, len(newNotes)):
+                if newNotes[note_index] > .5:
+                    result[0, i + windowSize, cur_note_index] = 1
+                    # if newNotes[note_index] > best_prob:
+                    #     second_best_note = best_note
+                    #     second_prob = best_prob
+                    #     best_prob = newNotes[note_index]
+                    #     best_note = note_index
+                    # elif newNotes[note_index] > second_prob:
+                    #     second_prob = newNotes[note_index]
+                    #     second_best_note = note_index
+                cur_note_index += 1
+        else:
+            result[0, i + windowSize, 0] = 1
+
+        # result[0, i + windowSize, second_best_note] = 1
 
     print("Raw results", result)
 
-    return result[:,len(startingData):,:]
+    # return result[:,len(startingData):,:]
+    return result
 
 def results_to_midi(results):
     quantized = []
@@ -60,7 +69,7 @@ def results_to_midi(results):
 if __name__ == '__main__':
     # print(device_lib.list_local_devices())
 
-    input_size = 256
+    input_size = 256 * 4
 
 
     # inputs = Input(shape=(256,8))
@@ -75,7 +84,8 @@ if __name__ == '__main__':
     # model.load_weights('best_weights.hdf5')
 
 
-    midData = examples.load_data("../Music/kunstderfuge.com/scarlatti 24.mid")
+    # midData = examples.load_data("../Music/kunstderfuge.com/scarlatti 69.mid")
+    midData = examples.load_data("/home/whomagoo/Downloads/Smooth Crim for music.mid")
 
 
 
@@ -91,11 +101,24 @@ if __name__ == '__main__':
     # model.add(layers.Dense(169, activation='relu'))
     # model.add(layers.Dense(examples.num_notes, activation='sigmoid'))
 
-    model.add(layers.LSTM(256, activation='tanh', recurrent_activation='sigmoid', recurrent_dropout=0, unroll=False, use_bias=True, return_sequences=False, time_major=False))
+    # model.add(layers.LSTM(256, activation='tanh', recurrent_activation='sigmoid', recurrent_dropout=0, unroll=False, use_bias=True, return_sequences=False, time_major=False))
+    # model.add(layers.Dense(65, activation='sigmoid'))
+
+    model = models.Sequential()
+    model.add(layers.LSTM(415, activation='tanh', recurrent_activation='sigmoid', recurrent_dropout=0, unroll=False, use_bias=True, return_sequences=False, time_major=False))
+    model.add(layers.Dense(65*3, activation='relu'))
     model.add(layers.Dense(65, activation='sigmoid'))
+    model.compile()
+
+    inputPath = "/home/whomagoo/IdeaProjects/Machine-Learning-Music/Models/TwoWide2020-09-30 05:08:13.693069-27-0.0133-112-0.0074-198-0.0044"
+
+    if inputPath is not None:
+        print("Loading Model From A file")
+        print(inputPath)
+        model.load_weights(inputPath)
 
 
-    model.load_weights("/home/whomagoo/IdeaProjects/Machine-Learning-Music/Models/Simple_2020-09-28 17:22:10.730312.index")
+    # model.load_weights("/home/whomagoo/IdeaProjects/Machine-Learning-Music/Models/Simple_2020-09-28 17:22:10.730312.index")
     # model.load_weights()
 
     # starting_notes = [[72, 64, 0, 0, 0, 0, 0, 0], [72, 69, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [63, 0, 0, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [68, 71, 52, 0, 0, 0, 0, 0], [64, 0, 0, 0, 0, 0, 0, 0], [84, 72, 57, 0, 0, 0, 0, 0]]
